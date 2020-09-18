@@ -687,24 +687,23 @@ function! s:ag_handler(lines, has_column)
     return
   endif
 
-  let cmd = s:action_for(a:lines[0], 'e')
-  let list = map(filter(a:lines[1:], 'len(v:val)'), 's:ag_to_qf(v:val, a:has_column)')
-  if empty(list)
+  let cmd = s:action_for(remove(a:lines, 0), 'e')
+  let lines = map(filter(a:lines, 'len(v:val)'), 's:ag_to_qf(v:val, a:has_column)')
+  if empty(lines)
     return
   endif
 
-  let first = list[0]
-  try
-    call s:open(cmd, first.filename)
-    execute first.lnum
-    if a:has_column
-      execute 'normal!' first.col.'|'
-    endif
-    normal! zz
-  catch
-  endtry
-
-  call s:fill_quickfix(list)
+  for line in lines
+      try
+        call s:open(cmd, line.filename)
+        execute line.lnum
+        if a:has_column
+          execute 'normal!' line.col.'|'
+        endif
+        normal! zz
+      catch
+      endtry
+  endfor
 endfunction
 
 " ag fzf_query, [options]
