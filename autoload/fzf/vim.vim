@@ -707,28 +707,25 @@ function! s:ag_handler(lines, has_column)
   call s:fill_quickfix(list)
 endfunction
 
-" query, [[ag options], options]
-function! fzf#vim#ag(query, ...)
-  if type(a:query) != s:TYPE.string
-    return s:warn('Invalid query argument')
+" ag fzf_query, [options]
+function! fzf#vim#ag(fzf_query, ...)
+  if type(a:fzf_query) != s:TYPE.string
+    return s:warn('Invalid fzf_query argument')
   endif
-  let query = empty(a:query) ? '^(?=.)' : a:query
-  let args = copy(a:000)
-  let ag_opts = len(args) > 1 && type(args[0]) == s:TYPE.string ? remove(args, 0) : ''
-  let command = ag_opts . ' -- ' . fzf#shellescape(query)
-  return call('fzf#vim#ag_raw', insert(args, command, 0))
-endfunction
-
-" ag command suffix, [options]
-function! fzf#vim#ag_raw(command_suffix, ...)
   if !executable('ag')
     return s:warn('ag is not found')
   endif
-  return call('fzf#vim#grep', extend(['ag --nogroup --column --color '.a:command_suffix, 1], a:000))
+  let args = copy(a:000)
+  let ag_opts = len(args) > 1 && type(args[0]) == s:TYPE.string ? remove(args, 0) : ''
+  let suffix = ag_opts . ' -- ' .fzf#shellescape('^(?=.)')
+  return call(
+  \    'fzf#vim#grep',
+  \    extend(['ag --nogroup --column --color '.suffix , a:fzf_query, 1], a:000)
+  \)
 endfunction
 
 " command (string), has_column (0/1), [options (dict)], [fullscreen (0/1)]
-function! fzf#vim#grep(grep_command, has_column, ...)
+function! fzf#vim#grep(grep_command, fzf_query, has_column, ...)
   let words = []
   for word in split(a:grep_command)
     if word !~# '^[a-z]'
@@ -746,6 +743,9 @@ function! fzf#vim#grep(grep_command, has_column, ...)
   \             '--delimiter', ':', '--preview-window', '+{2}-5',
   \             '--color', 'hl:4,hl+:12']
   \}
+  if a:fzf_query != ""
+      call insert(opts['options'], '-q'.a:fzf_query)
+  endif
   function! opts.sink(lines)
     return s:ag_handler(a:lines, self.column)
   endfunction
